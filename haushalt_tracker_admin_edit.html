@@ -1,0 +1,217 @@
+<!doctype html>\n<html lang="de"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Haushalts-Tracker (mit Admin)</title>
+  <style>
+    :root{--bg:#f7fafc;--card:#ffffff;--muted:#6b7280;--accent:#0ea5a4}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); margin:0; padding:24px}
+    .wrap{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{margin:0;font-size:20px}
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.06);}
+    form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    label{font-size:12px;color:var(--muted)}
+    input,select,textarea{padding:8px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px}
+    .full{grid-column:1/-1}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid #eef2f7;text-align:left}
+    .small{font-size:12px;color:var(--muted)}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#f1f5f9;font-size:12px}
+    .btn{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .btn.ghost{background:#fff;color:var(--muted);border:1px solid #e6eef0}
+    .grid-2{display:grid;grid-template-columns:1fr 320px;gap:14px}
+    @media(max-width:880px){form{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr} }
+    .chart{height:160px;background:linear-gradient(180deg,#fff,#fbfdfe);border-radius:8px;padding:10px}
+    .banner{border-radius:12px;overflow:hidden;margin-bottom:16px}\n    .banner svg{width:100%;height:180px;display:block}\n    .admin-panel{margin-top:12px}\n    .admin-area{display:none;margin-top:12px}\n    .admin-area.show{display:block}\n    textarea.code{width:100%;height:260px;font-family:monospace;font-size:12px}\n  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="banner card">
+      <!-- decorative SVG banner (no external images) -->
+      <svg viewBox="0 0 1200 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="#0ea5a4"></stop>
+            <stop offset="1" stop-color="#3b82f6"></stop>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="200" fill="url(#g)"></rect>
+        <g fill="rgba(255,255,255,0.12)">
+          <circle cx="110" cy="40" r="80"></circle>
+          <circle cx="260" cy="120" r="50"></circle>
+          <circle cx="500" cy="60" r="100"></circle>
+        </g>
+        <text x="40" y="120" font-size="40" fill="white" font-family="Inter, sans-serif">Haushalts‑Tracker</text>
+      </svg>
+    </div>
+
+    <header>
+      <div>
+        <h1>Haushalts-Tracker</h1>
+        <div class="small">Erfasse Verbrauch und Kosten — lokal im Browser gespeichert.</div>
+      </div>
+      <div>
+        <!-- Developer code / password bar -->
+        <label class="small" for="devPass">Entwickler-Code (Admin)</label><br>
+        <input id="devPass" placeholder="Passwort eingeben"> <button id="devLogin" class="btn ghost">Login</button>
+      </div>
+    </header>
+
+    <div class="grid-2">
+      <div class="card">
+        <form id="entryForm">
+          <div>
+            <label>Datum</label>
+            <input type="date" id="date" required="">
+          </div>
+
+          <div>
+            <label>Kategorie</label>
+            <select id="category">
+              <option>Strom</option>
+              <option>Wasser</option>
+              <option>Gas</option>
+              <option>Heizung</option>
+              <option>Internet</option>
+              <option>Müll</option>
+              <option>Sonstiges</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Menge</label>
+            <input type="number" step="any" id="amount" placeholder="z. B. 23.5" required="">
+          </div>
+
+          <div>
+            <label>Einheit</label>
+            <input id="unit" value="kWh">
+          </div>
+
+          <div class="full">
+            <label>Notiz</label>
+            <input id="note" placeholder="z. B. Zählerstand, Rechnung, Monat">
+          </div>
+
+          <div>
+            <button class="btn" type="submit">Eintrag hinzufügen</button>
+          </div>
+
+          <div>
+            <button type="button" id="clearBtn" class="btn ghost">Formular leeren</button>
+          </div>
+
+        </form>
+
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="exportBtn" class="btn ghost">Export CSV</button>
+          <label class="btn ghost" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">Import CSV<input id="importFile" type="file" accept=".csv" style="display:none"></label>
+          <button id="clearAll" class="btn ghost">Alle Einträge löschen</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <label class="small">Monat filtern</label>
+          <input type="month" id="monthFilter">
+        </div>
+
+        <div id="entriesWrap" style="margin-top:12px"><div class="small">Keine Einträge für die gewählte Ansicht.</div></div>
+      </div>
+
+      <aside class="card">
+        <h3 style="margin:0 0 8px 0">Übersicht</h3>
+        <div id="summary" class="small"><strong>Gesamt:</strong> 0<br><div style="margin-top:8px"></div></div>
+        <div style="margin-top:12px">
+          <div class="chart" id="chartArea"><div class="small">Keine Daten</div></div>
+        </div>
+        <div style="margin-top:12px" class="small">Tip: Du kannst die Daten als CSV exportieren und später wieder importieren.</div>
+
+        <!-- Admin area (hidden until correct password entered) -->
+        <div id="adminArea" class="admin-area card" style="margin-top:12px;padding:12px">
+          <h4>Admin-Bereich</h4>
+          <div class="small">Du bist als <strong>Admin</strong> eingeloggt. Du kannst den JavaScript-Code der Seite ansehen und als neue HTML-Datei herunterladen.</div>
+
+          <div class="admin-panel">
+            <label class="small">Seiten-Script (kann editiert werden)</label>
+            <textarea id="codeText" class="code"></textarea>
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button id="downloadEdited" class="btn">Als HTML herunterladen</button>
+              <button id="revokeAdmin" class="btn ghost">Admin abmelden</button>
+            </div>
+            <div class="small" style="margin-top:8px;color:var(--muted)">Hinweis: Änderungen werden nicht live ausgeführt. Du kannst eine neue HTML-Datei herunterladen und lokal öffnen.</div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+    <footer style="margin-top:18px;text-align:center;color:var(--muted);font-size:13px">Made with ❤️ — Läuft komplett lokal in deinem Browser.</footer>
+  </div>
+
+<script id="appScript">\ndennis
+\n</script>
+
+<script>
+// Admin login and code-editor logic
+(function(){
+  const ADMIN_PASS = 'Dennis'; // Passwort wie gewünscht
+  const loginBtn = document.getElementById('devLogin');
+  const passInput = document.getElementById('devPass');
+  const adminArea = document.getElementById('adminArea');
+  const codeText = document.getElementById('codeText');
+  const downloadEdited = document.getElementById('downloadEdited');
+  const revokeBtn = document.getElementById('revokeAdmin');
+
+  // load the current app script text into textarea
+  function loadScriptText(){ const s = document.getElementById('appScript'); codeText.value = s.innerText.trim(); }
+
+  loginBtn.addEventListener('click', ()=>{
+    const val = passInput.value || '';
+    if(val === ADMIN_PASS){
+      adminArea.classList.add('show');
+      passInput.value = '';
+      loadScriptText();
+      alert('Admin angemeldet');
+    } else {
+      alert('Falsches Passwort');
+    }
+  });
+
+  revokeBtn.addEventListener('click', ()=>{ adminArea.classList.remove('show'); alert('Admin abgemeldet'); });
+
+  // Build a new full HTML file with the edited script and trigger download
+  downloadEdited.addEventListener('click', ()=>{
+    const editedScript = codeText.value || '';
+    // Build the full HTML string by taking the current document structure and replacing the appScript content
+    const docClone = document.documentElement.cloneNode(true);
+
+    // find and replace the script with id appScript
+    const scripts = docClone.querySelectorAll('script#appScript');
+    if(scripts.length>0){
+      scripts[0].textContent = '\\n' + editedScript + '\\n';
+    } else {
+      // if not found, append one
+      const newS = document.createElement('script');
+      newS.id = 'appScript';
+      newS.textContent = '\\n' + editedScript + '\\n';
+      docClone.querySelector('body').appendChild(newS);
+    }
+
+    // remove admin panel state (so downloaded file starts without admin open)
+    const adminEl = docClone.querySelector('#adminArea');
+    if(adminEl) adminEl.classList.remove('show');
+
+    const htmlStr = '<!doctype html>\\n' + docClone.outerHTML;
+    const blob = new Blob([htmlStr], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'haushalt_tracker_admin_edit.html'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  // if the page was opened with ?admin=true in the URL, auto-open admin (optional)
+  if(location.search.indexOf('admin=true')!==-1){ adminArea.classList.add('show'); loadScriptText(); }
+})();
+</script>
+
+
+
+</body></html>
